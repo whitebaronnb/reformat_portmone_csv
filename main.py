@@ -1,11 +1,24 @@
-import csv
 import re
-from email_report import send_email_report
+import csv
+import locale
+import datetime as dt
 from copy import deepcopy
+from pathlib import Path
+from xlsx_to_csv import xlsx_to_csv_converter
+from email_report import send_email_report
 
-MAIN_FILE_NAME = '2020_08_20_report_1.csv'
-REFORMAT_FILE_NAME = '2020_08_20_report_2.csv'
-CASHLESS_PAYMENTS_FILE = 'абонплата_jul_2020.csv'
+locale.setlocale(locale.LC_TIME, 'en_US.UTF-8')
+FIRST_DAY_OF_MONTH = dt.datetime.today().replace(day=1)
+LAST_MONTH = (FIRST_DAY_OF_MONTH - dt.timedelta(days=1)).strftime('%B_%Y')
+
+BASE_DIR = Path('.')
+FILES_DIR = BASE_DIR / 'files'
+
+MAIN_FP = list(FILES_DIR.glob('*report_1.csv'))[0]
+REFORMAT_FP = list(FILES_DIR.glob('*report_2.csv'))[0]
+EXCEL_FP = list(FILES_DIR.glob('абонплата*.xlsx'))[0]
+RESULT_FILE = f'portmone_small_{LAST_MONTH}.csv'
+RESULT_FP = FILES_DIR / RESULT_FILE
 
 COMMENTS = {
     'ТОВ СКІФ КИЇВ ЮА': 'Шота Руставелі 44, 6 — [Office44S6]',
@@ -21,14 +34,16 @@ COMMENTS = {
     ],
 
     'ПАТ ДАТАГРУП': {
-        '384,00': 'Шота Руставелі 44, 4 — [KV541, KV542, KV543, KV544]',
-        '400,00': 'Шота Руставелі 44, 40 — [KV151, KV152, KV153, KV154]',
-    }
+        '400,00': 'Шота Руставелі 44, 4 — [KV541, KV542, KV543, KV544]',
+        '420,00': 'Шота Руставелі 44, 40 — [KV151, KV152, KV153, KV154]',
+    },
+    'ПП МОНТАЖ ОХОРОННИХ СИСТЕМ': 'Басейна 19, 14 - [Office19B14]',
+    'ПП БЕЗПЕЧНЕ МІСТО ХХІ': 'Басейна 19, 14 - [Office19B14]',
 }
 
-def add_commission_to_portmone_csv_file(file_name):
+def add_commission(file_path, result_file_path):
     """Открываем файл и достаем с него данные в отсортированный словарь"""
-    with open(file_name, encoding='cp1251', mode='r') as file_content:
+    with open(file_path, encoding='cp1251', mode='r') as file_content:
         reader = csv.DictReader(file_content, delimiter=';')
         my_list = []
 
@@ -43,16 +58,15 @@ def add_commission_to_portmone_csv_file(file_name):
             my_list.append(row)
 
     """Перезаписываем файл"""
-    with open(file_name, encoding='cp1251', mode='w') as output_file:
-        fieldnames = ['Дата', 'Коментар', 'Компанія', 'Опис', 'Сума', 'Сплачено', 'Статус', 'Дата_сплати', 'Комісія']
-        writer = csv.DictWriter(output_file, fieldnames=fieldnames, delimiter=';', extrasaction='ignore')
+    with open(result_file_path, encoding='cp1251', mode='w') as output_file:
+        fields = ['Дата', 'Коментар', 'Компанія', 'Опис', 'Сума', 'Сплачено', 'Статус', 'Дата_сплати', 'Комісія']
+        writer = csv.DictWriter(output_file, fieldnames=fields, delimiter=';', extrasaction='ignore')
         writer.writeheader()
         writer.writerows(my_list)
-    print(f'Сумма обновлена и комиссия убрана в файле: {file_name}')
 
 
-def reformat_portmone_csv_file(file_name, add_to_file_name):
-    with open(file_name, encoding='cp1251', mode='r') as file_content:
+def refactor_csv(file_path, append_file):
+    with open(file_path, encoding='cp1251', mode='r') as file_content:
         reader = csv.DictReader(file_content, delimiter=';')
 
         my_list = []
@@ -107,43 +121,42 @@ def reformat_portmone_csv_file(file_name, add_to_file_name):
                     my_list.append(new_row)
 
     """Добавляем изменения в файл, указанный в переменной add_to_file_name"""
-    with open(add_to_file_name, encoding='cp1251', mode='a') as output_file:
+    with open(append_file, encoding='cp1251', mode='a') as output_file:
         fieldnames = ['Дата', 'Коментар', 'Компанія', 'Опис', 'Сума', 'Сплачено', 'Статус', 'Дата_сплати', 'Комісія']
         writer = csv.DictWriter(output_file, fieldnames=fieldnames, delimiter=';', extrasaction='ignore')
         writer.writerows(my_list)
-    print(f'Данные из файла: {file_name} добавлены в файл: {add_to_file_name}')
 
-def add_cashless_payments(write_file, read_file):
-    with open(read_file, encoding='cp1251', mode='r') as in_file:
+def add_cash_payments(read_file_path, write_file_path):
+    with open(read_file_path, encoding='cp1251', mode='r') as in_file:
         reader = csv.DictReader(in_file, delimiter=';')
 
-        with open(write_file, encoding='cp1251', mode='a') as out_file:
+        with open(write_file_path, encoding='cp1251', mode='a') as out_file:
             fieldnames = ['Дата', 'Коментар', 'Компанія', 'Опис', 'Сума',
                           'Сплачено', 'Статус', 'Дата_сплати', 'Комісія']
 
             writer = csv.DictWriter(out_file, fieldnames=fieldnames, delimiter=';', extrasaction='ignore')
             writer.writerows(reader)
 
-    print(f'Данные из файла: {read_file} добавлены в файл: {write_file}')
-
-def total_file_sum(file_name, text_for_filed):
-    with open(file_name, encoding='cp1251', mode='r') as in_file:
+def total_file_sum(file_path, text_for_filed):
+    with open(file_path, encoding='cp1251', mode='r') as in_file:
         reader = csv.DictReader(in_file, delimiter=';')
-        total = sum([float(row["Сума"]) for row in reader])
+        total = round(sum([float(row["Сума"]) for row in reader]), 2)
         print(f'{text_for_filed}: {total}')
     return total
 
 
 def main():
-    add_commission_to_portmone_csv_file(MAIN_FILE_NAME)
-    reformat_portmone_csv_file(REFORMAT_FILE_NAME, MAIN_FILE_NAME)
-    portmone_small_sum = total_file_sum(MAIN_FILE_NAME, 'Сумма Portmone Small')
-    cashless_payments_sum = total_file_sum(CASHLESS_PAYMENTS_FILE, 'Сумма безналичных платежей')
-    add_cashless_payments(MAIN_FILE_NAME, CASHLESS_PAYMENTS_FILE)
-    total_sum = total_file_sum(MAIN_FILE_NAME, 'Сумма итого файла')
+    add_commission(MAIN_FP, RESULT_FP)
+    refactor_csv(REFORMAT_FP, RESULT_FP)
+    portmone_small_sum = total_file_sum(RESULT_FP, 'Сумма Portmone Small')
+    cash_payments_fp = xlsx_to_csv_converter(EXCEL_FP)
+    cash_payments_sum = total_file_sum(cash_payments_fp, 'Сумма безналичных платежей')
+    add_cash_payments(cash_payments_fp, RESULT_FP)
+    total_sum = total_file_sum(RESULT_FP, 'Сумма итого файла')
     send_report_to_mail = input('Отправить файл по почте? (y/n): ')
+
     if send_report_to_mail == 'y':
-        send_email_report(portmone_small_sum, cashless_payments_sum, total_sum, MAIN_FILE_NAME)
+        send_email_report(portmone_small_sum, cash_payments_sum, total_sum, RESULT_FP)
 
 
 if __name__ == '__main__':

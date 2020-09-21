@@ -1,0 +1,6 @@
+/files
+/venv
+/__pycache__
+.idea
+email_config.ini
+test.py

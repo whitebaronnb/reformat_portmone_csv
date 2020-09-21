@@ -1,7 +1,7 @@
-import os
 import datetime
 import locale
 import smtplib
+from pathlib import Path
 from configparser import ConfigParser
 from email.mime.text import MIMEText
 from email.header import Header
@@ -9,14 +9,14 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 
 locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
-TODAY = datetime.datetime.today()
-FIRST = TODAY.replace(day=1)
-LAST_MONTH = (FIRST - datetime.timedelta(days=1)).strftime('%B %Y')
+FIRST_DAY_OF_MONTH = datetime.datetime.today().replace(day=1)
+LAST_MONTH = (FIRST_DAY_OF_MONTH - datetime.timedelta(days=1)).strftime('%B %Y')
+CONFIG_PATH = Path('email_config.ini')
 
 def send_email_report(portmone_small_sum, cashless_sum, total_sum, file_name):
-    if os.path.exists('email_config.ini'):
+    if CONFIG_PATH.exists():
         cfg = ConfigParser()
-        cfg.read('email_config.ini')
+        cfg.read(CONFIG_PATH)
     else:
         print("Файл конфигурации email_config.ini не найден!")
         raise SystemExit
@@ -30,19 +30,18 @@ def send_email_report(portmone_small_sum, cashless_sum, total_sum, file_name):
     msg = MIMEMultipart()
     msg['From'] = from_addr
     msg['To'] = to_emails
-    msg['Subject'] = Header(f'PGH - абонплата - {LAST_MONTH}', 'cp1251')
+    msg['Subject'] = Header(f'PGH - абонплата - {LAST_MONTH.title()}', 'cp1251')
 
-    body_text = f'Всем доброго времени суток!\n' \
-                f'Высылаю табличку абонплаты {LAST_MONTH}\n' \
-                f'Portmone small: {portmone_small_sum} грн\n' \
-                f'Безналичные оплаты: {cashless_sum} грн\n' \
-                f'Итого: {total_sum} грн'
+    body_text = f'Всем доброго времени суток!<br>' \
+                f'Высылаю табличку абонплаты {LAST_MONTH.title()}<br><br>' \
+                f'Portmone small: {portmone_small_sum} грн<br>' \
+                f'Безналичные оплаты: {cashless_sum} грн<br>' \
+                f'Итого: <strong>{total_sum}</strong> грн'
 
-    msg.attach(MIMEText(body_text, 'plain', 'cp1251'))
+    msg.attach(MIMEText(body_text, 'html', 'cp1251'))
 
-    with open(file_name, "rb") as open_file:
-        part = MIMEApplication(open_file.read(), Name=os.path.basename(file_name))
-    part['Content-Disposition'] = f'attachment; filename="{os.path.basename(file_name)}"'
+    part = MIMEApplication(file_name.read_bytes(), Name=file_name.name)
+    part['Content-Disposition'] = f'attachment; filename="{file_name.name}"'
     msg.attach(part)
 
     server = smtplib.SMTP_SSL(host, 465)
