@@ -84,24 +84,22 @@ def issue_update(issue_id, issue_data):
 	client.service.mc_issue_update(USER, PASW, issue_id, issue_data)
 
 def proceed_excel_task(portmone_small, cash_payments, total):
-	note = IssueNoteData(
-		reporter=AccountData(id=172), 
-		text=NOTE_TEXT.format(MONTH, YEAR, portmone_small, cash_payments, total)
-	)
+	text = NOTE_TEXT.format(MONTH, YEAR, portmone_small, cash_payments, total)
+	note = IssueNoteData(reporter=AccountData(id=172), text=text)
+	issue_data = prepare_issue_data(project, CATEGORY, SUMMARY, DESCRIPTION, status, handler)
 	issue_id = get_task_id_from_summary(SUMMARY)
-	issue_data = prepare_issue_data(project, CATEGORY, SUMMARY, DESCRIPTION, status, handler, note)
 
 	if issue_id != 0:
-		print(f'\nExcel task already exists\n{issue_id}: {SUMMARY}')
+		print(f'\nТаск отчета Excel уже существует\n{issue_id}: {SUMMARY}')
 		issue_update(issue_id, issue_data)
 	elif issue_id == 0:
 		issue_id = new_task(issue_data)
-		print(f'\nNew excel task\n{issue_id}: {SUMMARY}')
+		print(f'\nНовый Excel отчет\n{issue_id}: {SUMMARY}')
 
 	issue_note_add(issue_id, note)
 
 	for file in FILES:
 		with open(file, 'rb') as f:
 			issue_attachment_add(issue_id, file.name, 'bug', f.read())
-	print(f'\nFiles uploaded\n')
+	print(f'\nФайлы загружены в таск\n')
 
