@@ -1,6 +1,6 @@
 import datetime
-import locale
 import smtplib
+from locale import setlocale, LC_TIME
 from pathlib import Path
 from configparser import ConfigParser
 from email.mime.text import MIMEText
@@ -8,7 +8,7 @@ from email.header import Header
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 
-locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
+setlocale(LC_TIME, 'ru_RU.UTF-8')
 FIRST_DAY_OF_MONTH = datetime.datetime.today().replace(day=1)
 LAST_MONTH = (FIRST_DAY_OF_MONTH - datetime.timedelta(days=1)).strftime('%B %Y')
 CONFIG_PATH = Path('email_config.ini')
