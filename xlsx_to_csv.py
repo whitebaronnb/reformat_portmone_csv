@@ -2,8 +2,9 @@ import pandas as pd
 from datetime import date, timedelta
 from pathlib import Path
 
-FIRST_DAY_OF_MONTH = date.today().replace(day=1)
-LAST_MONTH = (FIRST_DAY_OF_MONTH - timedelta(days=1)).strftime('%B_%Y')
+TODAY = date.today()
+LAST_MONTH = (TODAY.replace(day=1) - timedelta(days=1)).strftime('%B_%Y')
+TWO_MONTH_AGO = (TODAY.replace(day=1) - timedelta(days=32))
 
 BASE_DIR = Path('.')
 FILES_DIR = BASE_DIR / 'files'
