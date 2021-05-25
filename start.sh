@@ -1,5 +1,5 @@
 #!/bin/sh
-scutil --nc start "PGH" --secret $IPSec
-sleep 2
-venv/bin/python main.py
-scutil --nc stop "PGH"
+scutil --nc start "PGH Utels" --secret $IPSec
+sleep 5
+venv/bin/python3 main.py
+scutil --nc stop "PGH Utels"

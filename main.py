@@ -20,7 +20,7 @@ BASE_DIR = Path('.')
 FILES_DIR = BASE_DIR / 'files'
 
 MAIN_FP = list(FILES_DIR.glob('*report.csv'))[0]
-REFORMAT_FP = list(FILES_DIR.glob('*report_2.csv'))[0]
+# REFORMAT_FP = list(FILES_DIR.glob('*report_2.csv'))[0]
 EXCEL_FP = list(FILES_DIR.glob('абонплата*.xlsx'))[0]
 RESULT_FILE = f'Portmone_Small_{LAST_MONTH}.csv'
 RESULT_FP = FILES_DIR / RESULT_FILE
@@ -30,6 +30,10 @@ COMMENTS = {
 	'ТОВ В.О.К.С.': 'Басейна 19, 14 - [Office19B14]',
 	'ПП МОНТАЖ ОХОРОННИХ СИСТЕМ': 'Басейна 19, 14 - [Office19B14]',
 	'ПП БЕЗПЕЧНЕ МІСТО ХХІ': 'Басейна 19, 14 - [Office19B14]',
+	'Переказ на довільні реквізити - інші платежі': {
+		412.0: 'Шота Руставелі 44, 4 — [KV541, KV542, KV543, KV544]',
+		432.4: 'Шота Руставелі 44, 40 — [KV151, KV152, KV153, KV154]',
+	},
 
 	'MEGOGO': [
 		{'addr': 'Шота Руставелі 44, 5 — [KV249, KV113]', 'rule': lambda sum: round(sum / 5 * 3, 2)},
@@ -39,12 +43,14 @@ COMMENTS = {
 		{'addr': 'Шота Руставелі 44, 4 — [KV541, KV542, KV543, KV544]'},
 		{'addr': 'Басейна 17, 32 - [KV521, KV522, KV523, KV524, KV525, KV526, KV527, KV528]'},
 		{'addr': 'Басейна 17, 32 - [KV521, KV522, KV523, KV524, KV525, KV526, KV527, KV528]'},
+        {'addr': 'Басейна 17, 32 - [KV521, KV522, KV523, KV524, KV525, KV526, KV527, KV528]'},
+        {'addr': 'Басейна 17, 32 - [KV521, KV522, KV523, KV524, KV525, KV526, KV527, KV528]'},
 	],
 
 	'ПАТ ДАТАГРУП': {
 		77.44: 'Шота Руставелі 44, 40 — [KV151, KV152, KV153, KV154]',
 		412.0: 'Шота Руставелі 44, 4 — [KV541, KV542, KV543, KV544]',
-		432.6: 'Шота Руставелі 44, 40 — [KV151, KV152, KV153, KV154]',
+		432.4: 'Шота Руставелі 44, 40 — [KV151, KV152, KV153, KV154]',
 	},
 }
 
@@ -81,7 +87,7 @@ def add_commission_and_comments(file_path, result_file_path):
 					row['Сплачено'] = row['Сума']
 					megogo_index += 1
 
-				elif row['Компанія'] == 'ПАТ ДАТАГРУП':
+				elif row['Компанія'] in ('ПАТ ДАТАГРУП', 'Переказ на довільні реквізити - інші платежі'):
 					row['Коментар'] = COMMENTS[row['Компанія']][row['Сума']]
 				else:
 					row['Коментар'] = COMMENTS[row['Компанія']]
@@ -204,7 +210,7 @@ def total_file_sum(file_path, text_for_filed):
 
 def main():
 	add_commission_and_comments(MAIN_FP, RESULT_FP)
-	refactor_csv(REFORMAT_FP, RESULT_FP)
+	# refactor_csv(REFORMAT_FP, RESULT_FP)
 	portmone_small_sum = total_file_sum(RESULT_FP, 'Сумма Portmone Small')
 	cash_payments_fp = xlsx_to_csv_converter(EXCEL_FP)
 	cash_payments_sum = total_file_sum(cash_payments_fp, 'Сумма безналичных платежей')
