@@ -15,6 +15,6 @@ requests==2.25.1
 requests-file==1.5.1
 requests-toolbelt==0.9.1
 six==1.15.0
-urllib3==1.26.3
+urllib3==1.26.5
 xlrd==1.2.0
 zeep==4.0.0
